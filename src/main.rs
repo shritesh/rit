@@ -1,18 +1,34 @@
-use sha1::{Digest, Sha1};
-fn main() {
-    let input = "hello\n";
-    println!("raw: {}", sha1digest(input.as_bytes()));
+use std::path::PathBuf;
 
-    let blob = format!("blob {}\0{}", input.len(), input);
-    println!("blob: {}", sha1digest(blob.as_bytes()));
+use clap::{Parser, Subcommand};
 
-    let zipped = deflate::deflate_bytes_zlib(blob.as_bytes());
-    println!("zipped: {}", sha1digest(&zipped));
+#[derive(Parser)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
 }
 
-fn sha1digest(input: &[u8]) -> String {
-    let mut hasher = Sha1::new();
-    hasher.update(input);
-    let result = hasher.finalize();
-    format!("{:x}", result)
+#[derive(Subcommand)]
+enum Commands {
+    Init { path: Option<PathBuf> },
+}
+
+fn main() {
+    let args = Cli::parse();
+
+    match args.command {
+        Commands::Init { path } => {
+            let git_path = path
+                .unwrap_or_default()
+                .join(".git")
+                .canonicalize()
+                .unwrap();
+
+            for dir in ["objects", "refs"] {
+                std::fs::create_dir_all(git_path.join(dir)).unwrap();
+            }
+
+            println!("Initialized empty Rit repository in {}", git_path.display());
+        }
+    }
 }
