@@ -10,4 +10,5 @@ default-run = "rit"
 clap = {version = "4.0.26", features = ["derive"]}
 deflate = "1.0.0"
 inflate = "0.4.5"
+rand = "0.8.5"
 sha-1 = "0.10.0"
