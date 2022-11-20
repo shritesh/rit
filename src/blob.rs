@@ -11,11 +11,11 @@ impl Blob {
 }
 
 impl Object for Blob {
-    fn object_type(&self) -> &str {
+    fn kind(&self) -> &str {
         "blob"
     }
 
-    fn data(&self) -> &[u8] {
-        &self.data
+    fn data(&self) -> Vec<u8> {
+        self.data.clone()
     }
 }

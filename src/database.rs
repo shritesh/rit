@@ -1,7 +1,7 @@
-use crate::Object;
+use crate::{OId, Object};
+
 use deflate::deflate_bytes_zlib;
 use rand::{seq::SliceRandom, thread_rng};
-use sha1::{Digest, Sha1};
 use std::{
     fs::{self, OpenOptions},
     io::{Error, ErrorKind, Write},
@@ -17,17 +17,18 @@ impl Database {
         Self { path: path.into() }
     }
 
-    pub fn store(&self, object: impl Object) -> Result<(), Error> {
-        let mut content =
-            format!("{} {}\0", object.object_type(), object.data().len()).into_bytes();
+    pub fn store(&self, object: impl Object) -> Result<OId, Error> {
+        let mut content = format!("{} {}\0", object.kind(), object.data().len()).into_bytes();
         content.extend(object.data());
 
-        let oid = sha1digest(&content);
-        self.write_object(&oid, &content)
+        let oid = OId::new(&content);
+        self.write_object(&oid, &content)?;
+
+        Ok(oid)
     }
 
-    fn write_object(&self, oid: &str, content: &[u8]) -> Result<(), Error> {
-        let oid_parts = oid.split_at(2);
+    fn write_object(&self, oid: &OId, content: &[u8]) -> Result<(), Error> {
+        let oid_parts = oid.as_str().split_at(2);
 
         let parent = self.path.join(oid_parts.0);
         let object_path = parent.join(oid_parts.1);
@@ -57,11 +58,4 @@ fn generate_temp_name() -> String {
     let temp_chars: Vec<char> = ('A'..='Z').chain('a'..='z').chain('0'..='9').collect();
     let rest: String = temp_chars.choose_multiple(&mut thread_rng(), 6).collect();
     format!("tmp_obj_{rest}")
-}
-
-fn sha1digest(input: &[u8]) -> String {
-    let mut hasher = Sha1::new();
-    hasher.update(input);
-    let result = hasher.finalize();
-    format!("{:x}", result)
 }

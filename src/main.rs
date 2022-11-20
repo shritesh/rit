@@ -1,6 +1,8 @@
 mod blob;
 mod database;
+mod entry;
 mod object;
+mod tree;
 mod workspace;
 
 use clap::{Parser, Subcommand};
@@ -8,7 +10,9 @@ use std::{env, fs, io::Error, path::PathBuf};
 
 use blob::Blob;
 use database::Database;
-use object::Object;
+use entry::Entry;
+use object::{OId, Object};
+use tree::Tree;
 use workspace::Workspace;
 
 #[derive(Parser)]
@@ -51,12 +55,23 @@ fn main() -> Result<(), Error> {
             let workspace = Workspace::new(root_path);
             let database = Database::new(db_path);
 
-            for path in workspace.list_files()? {
-                let data = workspace.read_file(&path)?;
-                let blob = Blob::new(data);
+            let entries = workspace
+                .list_files()?
+                .into_iter()
+                .map(|path| {
+                    let data = workspace.read_file(&path)?;
+                    let blob = Blob::new(data);
 
-                database.store(blob)?;
-            }
+                    let oid = database.store(blob)?;
+
+                    Ok(Entry::new(path, oid))
+                })
+                .collect::<Result<Vec<Entry>, Error>>()?;
+
+            let tree = Tree::new(entries);
+            let oid = database.store(tree)?;
+
+            println!("tree: {}", oid.as_str());
         }
     }
 
