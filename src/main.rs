@@ -1,14 +1,25 @@
+mod author;
 mod blob;
+mod commit;
 mod database;
 mod entry;
 mod object;
 mod tree;
 mod workspace;
 
+use chrono::Local;
 use clap::{Parser, Subcommand};
-use std::{env, fs, io::Error, path::PathBuf};
+use std::{
+    env,
+    error::Error,
+    fs::{self, File},
+    io::{stdin, Read, Write},
+    path::PathBuf,
+};
 
+use author::Author;
 use blob::Blob;
+use commit::Commit;
 use database::Database;
 use entry::Entry;
 use object::{OId, Object};
@@ -27,7 +38,7 @@ enum Commands {
     Commit,
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
 
     match args.command {
@@ -62,16 +73,32 @@ fn main() -> Result<(), Error> {
                     let data = workspace.read_file(&path)?;
                     let blob = Blob::new(data);
 
-                    let oid = database.store(blob)?;
-
-                    Ok(Entry::new(path, oid))
+                    let blob_oid = database.store(blob)?;
+                    Ok(Entry::new(path, blob_oid))
                 })
-                .collect::<Result<Vec<Entry>, Error>>()?;
+                .collect::<Result<Vec<Entry>, std::io::Error>>()?;
 
             let tree = Tree::new(entries);
-            let oid = database.store(tree)?;
+            let tree_oid = database.store(tree)?;
 
-            println!("tree: {}", oid.as_str());
+            let name = std::env::var("GIT_AUTHOR_NAME")?;
+            let email = std::env::var("GIT_AUTHOR_EMAIL")?;
+            let author = Author::new(name, email, Local::now());
+
+            let mut message = String::new();
+            stdin().read_to_string(&mut message)?;
+
+            let commit = Commit::new(tree_oid, author, &message);
+            let commit_oid = database.store(commit)?;
+
+            let mut file = File::create(git_path.join("HEAD"))?;
+            file.write_all(commit_oid.as_hexstr().as_bytes())?;
+
+            println!(
+                "[(root-commit)] {} {}",
+                commit_oid.as_hexstr(),
+                message.lines().next().unwrap_or_default()
+            )
         }
     }
 

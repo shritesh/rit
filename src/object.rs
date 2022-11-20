@@ -20,7 +20,7 @@ impl OId {
         &self.bytes
     }
 
-    pub fn as_str(&self) -> &str {
+    pub fn as_hexstr(&self) -> &str {
         &self.string
     }
 }
