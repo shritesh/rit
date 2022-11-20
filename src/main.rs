@@ -4,6 +4,7 @@ mod commit;
 mod database;
 mod entry;
 mod object;
+mod refs;
 mod tree;
 mod workspace;
 
@@ -12,8 +13,8 @@ use clap::{Parser, Subcommand};
 use std::{
     env,
     error::Error,
-    fs::{self, File},
-    io::{stdin, Read, Write},
+    fs,
+    io::{stdin, Read},
     path::PathBuf,
 };
 
@@ -23,6 +24,7 @@ use commit::Commit;
 use database::Database;
 use entry::Entry;
 use object::{OId, Object};
+use refs::Refs;
 use tree::Tree;
 use workspace::Workspace;
 
@@ -65,6 +67,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
             let workspace = Workspace::new(root_path);
             let database = Database::new(db_path);
+            let refs = Refs::new(&git_path);
 
             let entries = workspace
                 .list_files()?
@@ -81,21 +84,23 @@ fn main() -> Result<(), Box<dyn Error>> {
             let tree = Tree::new(entries);
             let tree_oid = database.store(tree)?;
 
+            let parent_oid = refs.read_head()?;
             let name = std::env::var("GIT_AUTHOR_NAME")?;
             let email = std::env::var("GIT_AUTHOR_EMAIL")?;
             let author = Author::new(name, email, Local::now());
-
             let mut message = String::new();
             stdin().read_to_string(&mut message)?;
 
-            let commit = Commit::new(tree_oid, author, &message);
+            let commit = Commit::new(parent_oid, tree_oid, author, &message);
             let commit_oid = database.store(commit)?;
-
-            let mut file = File::create(git_path.join("HEAD"))?;
-            file.write_all(commit_oid.to_string().as_bytes())?;
+            refs.update_head(&commit_oid)?;
 
             println!(
-                "[(root-commit)] {} {}",
+                "[{}{}] {}",
+                parent_oid
+                    .is_none()
+                    .then_some("(root-commit) ")
+                    .unwrap_or_default(),
                 commit_oid,
                 message.lines().next().unwrap_or_default()
             )

@@ -1,15 +1,17 @@
-use crate::{object::Object, Author, OId};
+use crate::{Author, OId, Object};
 
 pub struct Commit {
-    oid: OId,
+    parent: Option<OId>,
+    tree: OId,
     author: Author,
     message: String,
 }
 
 impl Commit {
-    pub fn new(oid: OId, author: Author, message: impl Into<String>) -> Self {
+    pub fn new(parent: Option<OId>, tree: OId, author: Author, message: impl Into<String>) -> Self {
         Self {
-            oid,
+            parent,
+            tree,
             author,
             message: message.into(),
         }
@@ -22,10 +24,19 @@ impl Object for Commit {
     }
 
     fn data(&self) -> Vec<u8> {
-        format!(
-            "tree {}\nauthor {}\ncommitter {}\n\n{}",
-            self.oid, self.author, self.author, self.message
-        )
-        .into_bytes()
+        let mut output = String::new();
+
+        output.push_str(&format!("tree {}\n", self.tree));
+
+        if let Some(parent) = &self.parent {
+            output.push_str(&format!("parent {}\n", parent));
+        }
+
+        output.push_str(&format!(
+            "author {}\ncommitter {}\n\n{}",
+            self.author, self.author, self.message
+        ));
+
+        output.into_bytes()
     }
 }
