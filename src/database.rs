@@ -28,7 +28,8 @@ impl Database {
     }
 
     fn write_object(&self, oid: &OId, content: &[u8]) -> Result<(), Error> {
-        let oid_parts = oid.as_hexstr().split_at(2);
+        let oid_str = oid.to_string();
+        let oid_parts = oid_str.split_at(2);
 
         let parent = self.path.join(oid_parts.0);
         let object_path = parent.join(oid_parts.1);

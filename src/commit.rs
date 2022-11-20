@@ -24,10 +24,7 @@ impl Object for Commit {
     fn data(&self) -> Vec<u8> {
         format!(
             "tree {}\nauthor {}\ncommitter {}\n\n{}",
-            self.oid.as_hexstr(),
-            self.author.to_string(),
-            self.author.to_string(),
-            self.message
+            self.oid, self.author, self.author, self.message
         )
         .into_bytes()
     }

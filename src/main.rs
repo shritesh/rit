@@ -92,11 +92,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             let commit_oid = database.store(commit)?;
 
             let mut file = File::create(git_path.join("HEAD"))?;
-            file.write_all(commit_oid.as_hexstr().as_bytes())?;
+            file.write_all(commit_oid.to_string().as_bytes())?;
 
             println!(
                 "[(root-commit)] {} {}",
-                commit_oid.as_hexstr(),
+                commit_oid,
                 message.lines().next().unwrap_or_default()
             )
         }

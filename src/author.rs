@@ -1,4 +1,5 @@
 use chrono::{DateTime, Local};
+use std::fmt;
 
 pub struct Author {
     pub name: String,
@@ -14,9 +15,12 @@ impl Author {
             time,
         }
     }
+}
 
-    pub fn to_string(&self) -> String {
-        format!(
+impl fmt::Display for Author {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(
+            f,
             "{} <{}> {}",
             self.name,
             self.email,

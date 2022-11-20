@@ -1,5 +1,7 @@
 use sha1::{Digest, Sha1};
+use std::fmt::{self};
 
+// TODO: don't memoize string
 pub struct OId {
     bytes: [u8; 20],
     string: String,
@@ -19,9 +21,11 @@ impl OId {
     pub fn as_bytes(&self) -> &[u8; 20] {
         &self.bytes
     }
+}
 
-    pub fn as_hexstr(&self) -> &str {
-        &self.string
+impl fmt::Display for OId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.string)
     }
 }
 
